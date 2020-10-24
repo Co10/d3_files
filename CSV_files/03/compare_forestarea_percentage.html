@@ -1,0 +1,121 @@
+<html>
+
+    <body>
+        <meta charset="utf-8">
+        <script src="https://d3js.org/d3.v4.js"></script>
+        <div id="forestarea"></div>
+        <script>
+            var margin = { top: 30, right: 30, bottom: 180, left: 40 },
+                width = 600 - margin.left - margin.right,
+                height = 600 - margin.top - margin.bottom;
+
+            var svg = d3.select("#forestarea")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var x = d3.scaleTime().range([0, width]);
+            var xAxis = d3.axisBottom().scale(x);
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .attr("class", "myXaxis");
+
+            d3.csv("https://raw.githubusercontent.com/Co10/d3_files/master/CSV_files/03/compare_forestpercent.csv", function (data) {
+
+                var datas = data.map(function (d) {
+                    return {
+                        year: new Date(d.Year),
+                        "Country": d["Country Name"],
+                        "Forest area (% of land area)": +d["Forest area (% of land area)"]
+                    }
+                })
+
+                console.log("datas", datas);
+
+                var tit = ["year", "country", "Forest area (% of land area)"];
+                var keys = ["China", "Japan"];
+
+                var datastack = d3.nest()
+                    .key(function (d) { return d.Country; })
+                    .entries(datas);
+
+                console.log("datastack", datastack);
+
+                x.domain(d3.extent(datas, function (d) { return d.year; }));
+                svg.selectAll(".myXaxis")
+                    .call(xAxis);
+
+                var y = d3.scaleLinear()
+                    .domain(d3.extent(datas, function (d) { return d["Forest area (% of land area)"]; }))
+                    .range([height, 0]);
+
+                var yAxis = d3.axisLeft().scale(y);
+                svg.append("g")
+                    .attr("class", "myYaxis");
+
+                svg.selectAll(".myYaxis")
+                    .call(yAxis);
+
+                svg.append("text")
+                    .attr("text-anchor", "end")
+                    .attr("x", width)
+                    .attr("y", height - 10)
+                    .text("Time (year)");
+
+                var color = d3.scaleOrdinal()
+                    .domain(keys)
+                    .range(['#39A7DE', '#5F4493', '#E84947', '#EFA43A', '#F4E02B', '#8BC90B']);
+
+                var u = svg.selectAll(".line")
+                    .data(datastack);
+
+                u.enter()
+                    .append("path")
+                    .attr("class", "line")
+                    .attr("id", "the_line")
+                    .style("fill", "none")
+                    .attr("stroke", function (d) { console.log("color", d.key); return color(d.key); })
+                    .attr("stroke-width", 5)
+                    .attr("d", function (d) {
+                        return d3.line()
+                            .x(function (d) { console.log("year", d.year); return x(d.year); })
+                            .y(function (d) {
+                                return y(+(d["Forest area (% of land area)"]));
+                            })
+                            (d.values)
+                    })
+
+                var size = 20;
+                var la = svg.selectAll("mylabels")
+                    .data(keys);
+                la.enter()
+                    .append("text")
+                    .attr("id", "label")
+                    .attr("x", width - 30)
+                    .attr("y", function (d, i) { return height / 2 + 30 + i * (size + 5) + (size / 2) })
+                    .style("fill", function (d) { return color(d) })
+                    .text(function (d) { return d })
+                    .attr("text-anchor", "left")
+                    .style("alignment-baseline", "middle")
+
+
+                var ladot = svg.selectAll("legenddots")
+                    .data(keys);
+                ladot.enter()
+                    .append("circle")
+                    .attr("id", "label")
+                    .attr("r", 8)
+                    .attr("cx", width - 45)
+                    .attr("cy", function (d, i) { return height / 2 + 30 + i * (size + 5) + (size / 2) })
+                    .style("fill", function (d) { return color(d) })
+                    .attr("stroke", "none")
+            })
+
+
+
+        </script>
+    </body>
+
+</html>

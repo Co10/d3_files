@@ -1,0 +1,68 @@
+<html>
+
+    <body>
+        <meta charset="utf-8">
+        <script src="https://d3js.org/d3.v4.js"></script>
+        <div id="area"></div>
+        <script>
+            var width = 450, height = 450 ,margin = 40;
+            var svg = d3.select("#area")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+            d3.csv("https://raw.githubusercontent.com/Co10/d3_files/master/CSV_files/03/compare_area.csv", function (data) {
+                var datas = data.map(function (d) {
+                    return {
+                        "Country": d["Country Name"],
+                        "Land area (sq. km)": +d["Land area (sq. km)"]
+                    };
+                })
+
+                var keys = ["Country", "Land area (sq. km)"];
+
+                var pie = d3.pie()
+                    .value(function (d) { return d.value; })
+
+                var keyval = d3.nest()
+                    .key(function (d) { return d.Country; })
+                    .rollup(function (v) { return d3.mean(v, function (d) { return d["Land area (sq. km)"]; }); })
+                    .entries(datas);
+
+                var color = d3.scaleOrdinal()
+                    .domain(["China", "Japan"])
+                    .range(["#D5F5E3", "#1E8449"]);
+
+                var data_ready = pie(keyval);
+
+                var radius = Math.min(width, height) / 2 - margin;
+
+                var arcGenerator = d3.arc()
+                    .innerRadius(0)
+                    .outerRadius(radius);
+
+                svg.selectAll('mySlices')
+                    .data(data_ready)
+                    .enter()
+                    .append('path')
+                    .attr('d', arcGenerator)
+                    .attr('fill', function (d) { console.log("key", d.data.key); return (color(d.data.key)) })
+                    .attr("stroke", "none")
+                    .style("opacity", 0.7);
+
+                svg.selectAll('mySlices')
+                    .data(data_ready)
+                    .enter()
+                    .append('text')
+                    .text(function (d) { return d.data.key +": " + d.data.value +" km²" })
+                    .attr("transform", function (d) { return "translate(" + arcGenerator.centroid(d) + ")"; })
+                    .style("text-anchor", "middle")
+                    .style("font-size", 17);
+            })
+
+        </script>
+    </body>
+
+</html>

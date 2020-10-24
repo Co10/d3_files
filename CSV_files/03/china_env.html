@@ -1,0 +1,349 @@
+<html>
+
+    <head>
+        <p>China Environment Data from 1960 to 2016</p>
+    </head>
+
+    <body>
+        <meta charset="utf-8">
+        <script src="https://d3js.org/d3.v4.js"></script>
+        <style>
+            .button {
+                background-color: #518DC2;
+                border: none;
+                border-radius: 8px;
+                color: #BADDE9;
+                padding: 8px 20px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 16px;
+                box-shadow: 0 8px 12px 0 rgba(0, 0, 0, 0.2), 0 3px 6px 0 rgba(0, 0, 0, 0.19);
+            }
+        </style>
+        <button class="button" onclick="choose(1)">Adjusted savings</button>
+        <button class="button" onclick="choose(2)">Emissions</button>
+        <button class="button" onclick="choose(3)">Production</button>
+        <button class="button" onclick="choose(4)">Rents</button>
+        <button class="button" onclick="choose(5)">Area</button>
+        <div id="che"></div>
+        <script>
+            var p = d3.select("body").selectAll("p");
+            p.style("color", "#5CADC7").style("font-size", "24px");
+
+            var margin = { top: 30, right: 30, bottom: 180, left: 40 },
+                width = 600 - margin.left - margin.right,
+                height = 600 - margin.top - margin.bottom;
+
+            var svg = d3.select("#che")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var x = d3.scaleTime().range([0, width]);
+            var xAxis = d3.axisBottom().scale(x);
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .attr("class", "myXaxis");
+
+            function per(x, p) { return Number(x / 100).toLocaleString(undefined, { style: 'percent', minimumFractionDigits: p }); }
+
+            var years, adjsavings, emissions, production, rents, area;
+            var maxadj = 0, maxemi = 0, maxpro = 0, maxren = 0, maxare = 0;
+            var maxinf = 1e13;
+            var minadj = maxinf, minemi = maxinf, minpro = maxinf, minren = maxinf, minare = maxinf;
+            var rawdata = [], names = [], theName = [];
+            d3.csv("https://raw.githubusercontent.com/Co10/d3_files/master/CSV_files/03/china_environment.csv", function (data) {
+                names = data.columns;
+                console.log(names);
+                years = data.map(function (d) { return new Date(d.Year) });
+                adjsavings = data.map(function (d) {
+                    return {
+                        year: new Date(d.Year),
+                        "Adjusted savings: carbon dioxide damage (current US$)": +d["Adjusted savings: carbon dioxide damage (current US$)"],
+                        "Adjusted savings: consumption of fixed capital (current US$)": +d["Adjusted savings: consumption of fixed capital (current US$)"],
+                        //"Adjusted savings: education expenditure (% of GNI)": +d["Adjusted savings: education expenditure (% of GNI)"],
+                        "Adjusted savings: energy depletion (current US$)": +d["Adjusted savings: energy depletion (current US$)"],
+                        "Adjusted savings: mineral depletion (current US$)": +d["Adjusted savings: mineral depletion (current US$)"]
+                    }
+                })
+                emissions = data.map(function (d) {
+                    return {
+                        year: new Date(d.Year),
+                        //"Agricultural methane emissions (% of total)": +d["Agricultural methane emissions (% of total)"],
+                        //"Agricultural methane emissions (thousand metric tons of CO2 equivalent)": +d["Agricultural methane emissions (thousand metric tons of CO2 equivalent)"],
+                        //"Agricultural nitrous oxide emissions (% of total)": +d["Agricultural nitrous oxide emissions (% of total)"],
+                        //"Agricultural nitrous oxide emissions (thousand metric tons of CO2 equivalent)": +d["Agricultural nitrous oxide emissions (thousand metric tons of CO2 equivalent)"],
+                        "CO2 emissions (kt)": +d["CO2 emissions (kt)"],
+                        "Methane emissions (kt of CO2 equivalent)": +d["Methane emissions (kt of CO2 equivalent)"],
+                        "Nitrous oxide emissions (thousand metric tons of CO2 equivalent)": +d["Nitrous oxide emissions (thousand metric tons of CO2 equivalent)"]
+                    }
+                })
+                production = data.map(function (d) {
+                    return {
+                        year: new Date(d.Year),
+                        "Aquaculture production (metric tons)": +d["Aquaculture production (metric tons)"],
+                        "Capture fisheries production (metric tons)": +d["Capture fisheries production (metric tons)"],
+                        "Total fisheries production (metric tons)": +d["Total fisheries production (metric tons)"]
+                    }
+                })
+                rents = data.map(function (d) {
+                    return {
+                        year: new Date(d.Year),
+                        "Coal rents (% of GDP)": +d["Coal rents (% of GDP)"],
+                        "Forest rents (% of GDP)": +d["Forest rents (% of GDP)"],
+                        "Mineral rents (% of GDP)": +d["Mineral rents (% of GDP)"],
+                        "Oil rents (% of GDP)": +d["Oil rents (% of GDP)"],
+                        "Natural gas rents (% of GDP)": +d["Natural gas rents (% of GDP)"],
+                        "Total natural resources rents (% of GDP)": +d["Total natural resources rents (% of GDP)"]
+                    }
+                })
+                area = data.map(function (d) {
+                    return {
+                        year: new Date(d.Year),
+                        "Forest area (sq. km)": +d["Forest area (sq. km)"],
+                        "Land area (sq. km)": +d["Land area (sq. km)"],
+                        //"Forest area (% of land area)": +d["Forest area (% of land area)"]
+                    }
+                })
+                maxadj = Math.max(maxadj, d3.max(data, function (d) { return +d["Adjusted savings: carbon dioxide damage (current US$)"]; }));
+                maxadj = Math.max(maxadj, d3.max(data, function (d) { return +d["Adjusted savings: consumption of fixed capital (current US$)"]; }));
+                //maxadj = Math.max(maxadj, d3.max(data, function (d) { return +d["Adjusted savings: education expenditure (% of GNI)"]; }));
+                maxadj = Math.max(maxadj, d3.max(data, function (d) { return +d["Adjusted savings: energy depletion (current US$)"]; }));
+                maxadj = Math.max(maxadj, d3.max(data, function (d) { return +d["Adjusted savings: mineral depletion (current US$)"]; }));
+                minadj = Math.min(minadj, d3.min(data, function (d) { return +d["Adjusted savings: carbon dioxide damage (current US$)"] > 0 ? +d["Adjusted savings: carbon dioxide damage (current US$)"] : maxinf; }));
+                minadj = Math.min(minadj, d3.min(data, function (d) { return +d["Adjusted savings: consumption of fixed capital (current US$)"] > 0 ? +d["Adjusted savings: consumption of fixed capital (current US$)"] : maxinf; }));
+                minadj = Math.min(minadj, d3.min(data, function (d) { return +d["Adjusted savings: energy depletion (current US$)"] > 0 ? +d["Adjusted savings: energy depletion (current US$)"] : maxinf; }));
+                minadj = Math.min(minadj, d3.min(data, function (d) { return +d["Adjusted savings: mineral depletion (current US$)"] > 0 ? +d["Adjusted savings: mineral depletion (current US$)"] : maxinf; }));
+
+                //maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["Agricultural methane emissions (% of total)"]; }));
+                //maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["Agricultural methane emissions (thousand metric tons of CO2 equivalent)"]; }));
+                //maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["Agricultural nitrous oxide emissions (% of total)"]; }));
+                //maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["Agricultural nitrous oxide emissions (thousand metric tons of CO2 equivalent)"]; }));
+                maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["CO2 emissions (kt)"]; }));
+                maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["Methane emissions (kt of CO2 equivalent)"]; }));
+                maxemi = Math.max(maxemi, d3.max(data, function (d) { return +d["Nitrous oxide emissions (thousand metric tons of CO2 equivalent)"]; }));
+                minemi = Math.min(minemi, d3.min(data, function (d) { return +d["CO2 emissions (kt)"] > 0 ? +d["CO2 emissions (kt)"] : maxinf; }));
+                minemi = Math.min(minemi, d3.min(data, function (d) { return +d["Methane emissions (kt of CO2 equivalent)"] > 0 ? +d["Methane emissions (kt of CO2 equivalent)"] : maxinf; }));
+                minemi = Math.min(minemi, d3.min(data, function (d) { return +d["Nitrous oxide emissions (thousand metric tons of CO2 equivalent)"] > 0 ? +d["Nitrous oxide emissions (thousand metric tons of CO2 equivalent)"] : maxinf; }));
+
+                maxpro = Math.max(maxpro, d3.max(data, function (d) { return +d["Aquaculture production (metric tons)"]; }));
+                maxpro = Math.max(maxpro, d3.max(data, function (d) { return +d["Capture fisheries production (metric tons)"]; }));
+                maxpro = Math.max(maxpro, d3.max(data, function (d) { return +d["Total fisheries production (metric tons)"]; }));
+                minpro = Math.min(minpro, d3.min(data, function (d) { return +d["Aquaculture production (metric tons)"] > 0 ? +d["Aquaculture production (metric tons)"] : maxinf; }));
+                minpro = Math.min(minpro, d3.min(data, function (d) { return +d["Capture fisheries production (metric tons)"] > 0 ? +d["Capture fisheries production (metric tons)"] : maxinf; }));
+                minpro = Math.min(minpro, d3.min(data, function (d) { return +d["Total fisheries production (metric tons)"] > 0 ? +d["Total fisheries production (metric tons)"] : maxinf; }));
+
+                maxren = Math.max(maxren, d3.max(data, function (d) { return +d["Coal rents (% of GDP)"]; }));
+                maxren = Math.max(maxren, d3.max(data, function (d) { return +d["Forest rents (% of GDP)"]; }));
+                maxren = Math.max(maxren, d3.max(data, function (d) { return +d["Mineral rents (% of GDP)"]; }));
+                maxren = Math.max(maxren, d3.max(data, function (d) { return +d["Oil rents (% of GDP)"]; }));
+                maxren = Math.max(maxren, d3.max(data, function (d) { return +d["Natural gas rents (% of GDP)"]; }));
+                maxren = Math.max(maxren, d3.max(data, function (d) { return +d["Total natural resources rents (% of GDP)"]; }));
+                minren = Math.min(minren, d3.min(data, function (d) { return +d["Coal rents (% of GDP)"] > 0 ? +d["Coal rents (% of GDP)"] : maxinf; }));
+                minren = Math.min(minren, d3.min(data, function (d) { return +d["Forest rents (% of GDP)"] > 0 ? +d["Forest rents (% of GDP)"] : maxinf; }));
+                minren = Math.min(minren, d3.min(data, function (d) { return +d["Mineral rents (% of GDP)"] > 0 ? +d["Mineral rents (% of GDP)"] : maxinf; }));
+                minren = Math.min(minren, d3.min(data, function (d) { return +d["Oil rents (% of GDP)"] > 0 ? +d["Oil rents (% of GDP)"] : maxinf; }));
+                minren = Math.min(minren, d3.min(data, function (d) { return +d["Natural gas rents (% of GDP)"] > 0 ? +d["Natural gas rents (% of GDP)"] : maxinf; }));
+                minren = Math.min(minren, d3.min(data, function (d) { return +d["Total natural resources rents (% of GDP)"] > 0 ? +d["Total natural resources rents (% of GDP)"] : maxinf; }));
+
+                maxare = Math.max(maxare, d3.max(data, function (d) { return +d["Forest area (sq. km)"]; }));
+                maxare = Math.max(maxare, d3.max(data, function (d) { return +d["Land area (sq. km)"]; }));
+                //maxare = Math.max(maxare, d3.max(data, function (d) { return +d["Forest area (% of land area)"]; }));
+                minare = Math.min(minare, d3.min(data, function (d) { return +d["Forest area (sq. km)"] > 0 ? +d["Forest area (sq. km)"] : maxinf; }));
+                minare = Math.min(minare, d3.min(data, function (d) { return +d["Land area (sq. km)"] > 0 ? +d["Land area (sq. km)"] : maxinf; }));
+            });
+
+
+            function choose(choice) {
+                //d3.select("#the_line").remove();
+                d3.selectAll("#label").remove();
+                d3.selectAll("#the_line").remove();
+                var datas = [];
+                var maxdat, mindat;
+                var percent;
+                switch (choice) {
+                    case 1:
+                        //console.log(adjsavings);
+                        percent = false;
+                        maxdat = maxadj;
+                        mindat = minadj;
+                        datas = adjsavings;
+                        theName = ["year"];
+                        theName.push(names[1]);
+                        theName.push(names[2]);
+                        //theName.push(names[3]);
+                        theName.push(names[4]);
+                        theName.push(names[5]);
+                        //console.log("compare adj and data");
+                        //console.log(adjsavings);
+                        //console.log(datas);
+                        break;
+                    case 2:
+                        //console.log(emissions);
+                        percent = false;
+                        maxdat = maxemi;
+                        mindat = minemi;
+                        datas = emissions;
+                        theName = ["year"];
+                        //theName.push(names[6]);
+                        //theName.push(names[7]);
+                        //theName.push(names[8]);
+                        //theName.push(names[9]);
+                        theName.push(names[10]);
+                        theName.push(names[11]);
+                        theName.push(names[12]);
+                        break;
+                    case 3:
+                        //console.log(production);
+                        percent = false;
+                        maxdat = maxpro;
+                        mindat = minpro;
+                        datas = production;
+                        theName = ["year"];
+                        theName.push(names[13]);
+                        theName.push(names[14]);
+                        theName.push(names[15]);
+                        break;
+                    case 4:
+                        //console.log(rents);
+                        percent = true;
+                        maxdat = maxren;
+                        mindat = minren;
+                        datas = rents;
+                        theName = ["year"];
+                        theName.push(names[16]);
+                        theName.push(names[17]);
+                        theName.push(names[18]);
+                        theName.push(names[19]);
+                        theName.push(names[20]);
+                        theName.push(names[21]);
+                        break;
+                    case 5://console.log(area);
+                        percent = false;
+                        maxdat = maxare;
+                        mindat = minare;
+                        datas = area;
+                        theName = ["year"];
+                        theName.push(names[22]);
+                        theName.push(names[23]);
+                        //theName.push(names[24]);
+                        break;
+                    default://console.log(adjsavings);
+                        percent = false;
+                        maxdat = maxadj;
+                        mindat = minadj;
+                        datas = adjsavings;
+                        theName = ["year"];
+                        theName.push(names[1]);
+                        theName.push(names[2]);
+                        //theName.push(names[3]);
+                        theName.push(names[4]);
+                        theName.push(names[5]);
+                        break;
+                }
+                update(datas, theName, maxdat, mindat, percent);
+            }
+
+            function update(datas, theName, maxdat, mindat, percent) {
+
+                var durSpeed = 1000;
+
+                //console.log("updated");
+                //console.log(datas);
+                //console.log(theName);
+
+                var keys = theName.slice(1);
+                console.log("keys", keys);
+
+                x.domain(d3.extent(datas, function (d) { return d.year; }));
+                svg.selectAll(".myXaxis").transition()
+                    .duration(durSpeed)
+                    .call(xAxis);
+                //
+                var y;
+                if (percent == false)
+                    y = d3.scaleLog().domain([mindat.toExponential(), maxdat.toExponential()]).range([height, 0]);
+                else
+                    y = d3.scaleLinear().domain([0, maxdat]).range([height, 0]);
+                var yAxis = d3.axisLeft().scale(y);
+                svg.append("g")
+                    .attr("class", "myYaxis");
+
+                svg.selectAll(".myYaxis")
+                    .transition()
+                    .duration(durSpeed)
+                    .call(yAxis);
+
+                svg.append("text")
+                    .transition()
+                    .duration(durSpeed)
+                    .attr("text-anchor", "end")
+                    .attr("x", width)
+                    .attr("y", height - 10)
+                    .text("Time (year)");
+
+                var color = d3.scaleOrdinal()
+                    .domain(keys)
+                    .range(['#39A7DE', '#5F4493', '#E84947', '#EFA43A', '#F4E02B', '#8BC90B']);
+
+                var datastack = d3.stack().keys(keys)(datas);
+
+                console.log("stack", datastack);
+
+                var u = svg.selectAll(".line")
+                    .data(datastack);
+                u.enter()
+                    .append("path")
+                    .attr("class", "line")
+                    .attr("id", "the_line")
+                    .merge(u)
+                    .transition()
+                    .duration(durSpeed)
+                    .style("fill", "none")
+                    .attr("stroke", function (d) { console.log("color", d.key); return color(d.key); })
+                    .attr("stroke-width", 5)
+                    .attr("d", d3.line()
+                        .defined(function (d) { if (percent == false) return (d[1] - d[0]) !== 0; else return true; })
+                        .x(function (d, i) { return x(d.data.year); })
+                        .y(function (d) {
+                            if (percent == false)
+                                return +(d[1] - d[0]) > 0 ? y(+(d[1] - d[0])) : NaN;
+                            else
+                                return y(+(d[1] - d[0]));
+                        })
+                    )
+
+                var size = 20;
+                var la = svg.selectAll("mylabels")
+                    .data(keys);
+                la.enter()
+                    .append("text")
+                    .attr("id", "label")
+                    .attr("x", 15)
+                    .attr("y", function (d, i) { return height + 30 + i * (size + 5) + (size / 2) })
+                    .style("fill", function (d) { return color(d) })
+                    .text(function (d) { return d })
+                    .attr("text-anchor", "left")
+                    .style("alignment-baseline", "middle")
+
+
+                var ladot = svg.selectAll("legenddots")
+                    .data(keys);
+                ladot.enter()
+                    .append("circle")
+                    .attr("id", "label")
+                    .attr("r", 8)
+                    .attr("cx", 0)
+                    .attr("cy", function (d, i) { return height + 30 + i * (size + 5) + (size / 2) })
+                    .style("fill", function (d) { return color(d) })
+                    .attr("stroke", "none")
+            }
+
+            //choose(1);
+        </script>
+    </body>
+
+</html>
